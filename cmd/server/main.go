@@ -10,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jaydeadlondon/project_na_go/internal/config"
 	"github.com/jaydeadlondon/project_na_go/internal/database"
+	"github.com/jaydeadlondon/project_na_go/internal/router"
 )
 
 func main() {
@@ -51,6 +52,7 @@ func main() {
 		})
 	})
 
+	router.Setup(app, db, cfg)
 
 	log.Fatal(app.Listen(fmt.Sprintf(":%s", cfg.App.Port)))
 }

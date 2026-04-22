@@ -11,6 +11,7 @@ import (
 	"github.com/jaydeadlondon/project_na_go/internal/config"
 	"github.com/jaydeadlondon/project_na_go/internal/database"
 	"github.com/jaydeadlondon/project_na_go/internal/router"
+	"github.com/jaydeadlondon/project_na_go/internal/scheduler"
 )
 
 func main() {
@@ -21,6 +22,10 @@ func main() {
 
 	rdb := database.NewRedisClient(cfg)
 	_ = rdb
+
+	s := scheduler.NewScheduler(db)
+	s.Start()
+	defer s.Stop()
 
 	app := fiber.New(fiber.Config{
 		AppName: "Uptime Monitor API",
@@ -52,7 +57,7 @@ func main() {
 		})
 	})
 
-	router.Setup(app, db, cfg)
+	router.Setup(app, db, cfg, s)
 
 	log.Fatal(app.Listen(fmt.Sprintf(":%s", cfg.App.Port)))
 }

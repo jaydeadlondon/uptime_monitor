@@ -12,6 +12,7 @@ import (
 	"github.com/jaydeadlondon/project_na_go/internal/database"
 	"github.com/jaydeadlondon/project_na_go/internal/router"
 	"github.com/jaydeadlondon/project_na_go/internal/scheduler"
+	"github.com/jaydeadlondon/project_na_go/internal/telegram"
 )
 
 func main() {
@@ -23,7 +24,21 @@ func main() {
 	rdb := database.NewRedisClient(cfg)
 	_ = rdb
 
-	s := scheduler.NewScheduler(db)
+	var tgBot *telegram.Bot
+	if cfg.Telegram.BotToken != "" {
+		var err error
+		tgBot, err = telegram.NewBot(cfg.Telegram.BotToken, db)
+		if err != nil {
+			log.Printf("⚠️  Telegram bot failed to start: %v", err)
+		} else {
+			tgBot.Start()
+			defer tgBot.Stop()
+		}
+	} else {
+		log.Println("⚠️  Telegram bot token not set, notifications disabled")
+	}
+
+	s := scheduler.NewScheduler(db, tgBot)
 	s.Start()
 	defer s.Stop()
 

@@ -12,6 +12,7 @@ import (
 func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config, s *scheduler.Scheduler) {
 	authHandler := handlers.NewAuthHandler(db, cfg)
 	monitorHandler := handlers.NewMonitorHandler(db, s)
+	telegramHandler := handlers.NewTelegramHandler(db, cfg.Telegram.BotName)
 
 	api := app.Group("/api")
 
@@ -30,4 +31,9 @@ func Setup(app *fiber.App, db *gorm.DB, cfg *config.Config, s *scheduler.Schedul
 	monitors.Delete("/:id", monitorHandler.Delete)
 	monitors.Get("/:id/checks", monitorHandler.GetChecks)
 	monitors.Get("/:id/stats", monitorHandler.GetStats)
+
+	tg := protected.Group("/telegram")
+	tg.Post("/link", telegramHandler.GenerateLink)
+	tg.Delete("/unlink", telegramHandler.Unlink)
+	tg.Get("/status", telegramHandler.Status)
 }

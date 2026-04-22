@@ -41,6 +41,7 @@ type JWTConfig struct {
 
 type TelegramConfig struct {
 	BotToken string
+	BotName  string
 }
 
 func (d DatabaseConfig) DSN() string {
@@ -77,6 +78,7 @@ func Load() *Config {
 		},
 		Telegram: TelegramConfig{
 			BotToken: getEnv("TELEGRAM_BOT_TOKEN", ""),
+			BotName:  "Uptime_Monitor_Botbot",
 		},
 	}
 }

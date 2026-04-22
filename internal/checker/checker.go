@@ -2,22 +2,26 @@ package checker
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/jaydeadlondon/project_na_go/internal/models"
+	"github.com/jaydeadlondon/project_na_go/internal/telegram"
 	"gorm.io/gorm"
 )
 
 type Checker struct {
 	db         *gorm.DB
 	httpClient *http.Client
+	tgBot      *telegram.Bot
 }
 
-func NewChecker(db *gorm.DB) *Checker {
+func NewChecker(db *gorm.DB, tgBot *telegram.Bot) *Checker {
 	return &Checker{
-		db: db,
+		db:    db,
+		tgBot: tgBot,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -107,29 +111,32 @@ func (c *Checker) SaveResult(monitor *models.Monitor, result CheckResult) {
 		return
 	}
 
-	c.handleIncident(monitor, previousStatus, result.Status)
+	c.handleIncident(monitor, previousStatus, result)
 }
 
 func (c *Checker) handleIncident(
 	monitor *models.Monitor,
 	previousStatus models.MonitorStatus,
-	currentStatus models.CheckStatus,
+	result CheckResult,
 ) {
 	now := time.Now()
 
-	if previousStatus != models.StatusDown && currentStatus == models.CheckStatusDown {
+	if previousStatus != models.StatusDown && result.Status == models.CheckStatusDown {
 		incident := models.Incident{
 			MonitorID: monitor.ID,
 			StartedAt: now,
 		}
 		if err := c.db.Create(&incident).Error; err != nil {
-			log.Printf("Failed to create incident for monitor %d: %v", monitor.ID, err)
+			log.Printf("Failed to create incident: %v", err)
 		}
+
 		log.Printf("🔴 Monitor DOWN: %s (%s)", monitor.Name, monitor.URL)
+
+		c.sendDownNotification(monitor, result)
 		return
 	}
 
-	if previousStatus == models.StatusDown && currentStatus == models.CheckStatusUp {
+	if previousStatus == models.StatusDown && result.Status == models.CheckStatusUp {
 		var incident models.Incident
 		err := c.db.Where("monitor_id = ? AND resolved_at IS NULL", monitor.ID).
 			First(&incident).Error
@@ -140,9 +147,53 @@ func (c *Checker) handleIncident(
 			incident.DurationSeconds = &duration
 
 			if err := c.db.Save(&incident).Error; err != nil {
-				log.Printf("Failed to resolve incident for monitor %d: %v", monitor.ID, err)
+				log.Printf("Failed to resolve incident: %v", err)
 			}
-			log.Printf("🟢 Monitor UP: %s (%s) — was down for %ds", monitor.Name, monitor.URL, duration)
+
+			log.Printf("🟢 Monitor UP: %s — was down for %ds", monitor.Name, duration)
+
+			c.sendUpNotification(monitor, duration)
 		}
 	}
+}
+
+func (c *Checker) sendDownNotification(monitor *models.Monitor, result CheckResult) {
+	if c.tgBot == nil {
+		return
+	}
+
+	var user models.User
+	if err := c.db.First(&user, monitor.UserID).Error; err != nil {
+		return
+	}
+
+	if user.TelegramChatID == nil {
+		return
+	}
+
+	errMsg := "Неизвестная ошибка"
+	if result.ErrorMessage != nil {
+		errMsg = *result.ErrorMessage
+	} else if result.StatusCode != nil {
+		errMsg = fmt.Sprintf("HTTP %d", *result.StatusCode)
+	}
+
+	c.tgBot.SendDownAlert(*user.TelegramChatID, *monitor, errMsg)
+}
+
+func (c *Checker) sendUpNotification(monitor *models.Monitor, duration int64) {
+	if c.tgBot == nil {
+		return
+	}
+
+	var user models.User
+	if err := c.db.First(&user, monitor.UserID).Error; err != nil {
+		return
+	}
+
+	if user.TelegramChatID == nil {
+		return
+	}
+
+	c.tgBot.SendUpAlert(*user.TelegramChatID, *monitor, duration)
 }

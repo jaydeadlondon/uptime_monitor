@@ -7,6 +7,7 @@ import (
 
 	"github.com/jaydeadlondon/project_na_go/internal/checker"
 	"github.com/jaydeadlondon/project_na_go/internal/models"
+	"github.com/jaydeadlondon/project_na_go/internal/telegram"
 	"github.com/robfig/cron/v3"
 	"gorm.io/gorm"
 )
@@ -19,10 +20,10 @@ type Scheduler struct {
 	mu      sync.Mutex
 }
 
-func NewScheduler(db *gorm.DB) *Scheduler {
+func NewScheduler(db *gorm.DB, tgBot *telegram.Bot) *Scheduler {
 	return &Scheduler{
 		db:      db,
-		checker: checker.NewChecker(db),
+		checker: checker.NewChecker(db, tgBot),
 		cron:    cron.New(),
 		jobs:    make(map[uint]cron.EntryID),
 	}
@@ -59,7 +60,6 @@ func (s *Scheduler) AddMonitor(monitor models.Monitor) {
 	}
 
 	cronExpr := fmt.Sprintf("@every %dm", monitor.Interval)
-
 	monitorCopy := monitor
 
 	entryID, err := s.cron.AddFunc(cronExpr, func() {
@@ -82,14 +82,12 @@ func (s *Scheduler) RemoveMonitor(monitorID uint) {
 	if entryID, exists := s.jobs[monitorID]; exists {
 		s.cron.Remove(entryID)
 		delete(s.jobs, monitorID)
-		log.Printf("Monitor %d removed from scheduler", monitorID)
 	}
 }
 
 func (s *Scheduler) runCheck(monitor *models.Monitor) {
 	var freshMonitor models.Monitor
 	if err := s.db.First(&freshMonitor, monitor.ID).Error; err != nil {
-		log.Printf("Monitor %d not found, skipping", monitor.ID)
 		return
 	}
 

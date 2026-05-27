@@ -1,62 +1,62 @@
 # Uptime Monitor
 
-Uptime Monitor — простой сервис для проверки доступности и времени отклика ваших сервисов и сайтов.
+Uptime Monitor is a simple service for checking the availability and response times of your services and websites.
 
-Ключевые характеристики
+## Key Features
 
-- Мониторинг HTTP/HTTPS-эндпоинтов
-- Оповещения при недоступности (настройка через web-интерфейс)
-- История проверок и базовые метрики доступности
-- Разделённая кодовая база: бэкенд на Go, фронтенд на TypeScript (React + Vite)
+- Monitoring of HTTP/HTTPS endpoints
+- Outage alerts (configurable via web interface)
+- Check history and basic availability metrics
+- Separate codebases: backend in Go, frontend in TypeScript (React + Vite)
 
-Технологии
+## Technologies
 
-- TypeScript (фронтенд)
-- Go (бэкенд)
+- TypeScript (frontend)
+- Go (backend)
 - CSS
 
-Установка и запуск (локально)
+## Installation and setup (locally)
 
-Требования:
-- Go 1.20+ (для бэкенда)
-- Node.js 18+ и npm/yarn (для фронтенда)
+Requirements:
+- Go 1.20+ (for the backend)
+- Node.js 18+ and npm/yarn (for the frontend)
 
-1) Клонировать репозиторий:
+### 1) Clone the repository:
 
 ```bash
 git clone https://github.com/jaydeadlondon/uptime_monitor.git
 cd uptime_monitor
 ```
 
-2) Запуск фронтенда:
+### 2) Run the frontend:
 
 ```bash
 cd frontend
 npm install
 npm run dev
-# или
-# yarn
-# yarn dev
+# or
+yarn
+yarn dev
 ```
 
-Фронтенд по умолчанию запускается в режиме разработки на http://localhost:5173 (Vite).
+By default, the frontend runs in development mode at http://localhost:5173 (Vite).
 
-3) Запуск бэкенда (пример):
+### 3) Run the backend (example):
 
 ```bash
-# из корня репозитория
-# если бэкенд расположен в подкаталоге, зайдите в него, например: cd server
+# from the root of the repository
+# if the backend is located in a subdirectory, navigate to it, for example: cd server
 go run ./...
 ```
 
-В проекте есть файл .env.example, скопируйте его в .env и укажите необходимые переменные окружения перед запуском.
+The project includes a .env.example file; copy it to .env and specify the necessary environment variables before running.
 
-Конфигурация
+## Configuration
 
-- Переменные окружения и параметры проверок настраиваются через конфигурационные файлы или .env (в зависимости от реализации).
-- Часто используемые переменные: адрес базы данных, ключи для отправки уведомлений, настройки интервалов проверок.
+- Environment variables and check parameters are configured via configuration files or .env (depending on the implementation).
+- Frequently used variables: database address, keys for sending notifications, check interval settings.
 
-Использование
+## Usage
 
-- Через веб-интерфейс: добавьте URL для мониторинга, настройте интервал и порог срабатывания.
-- Смотрите историю проверок и уведомления в интерфейсе.
+- Via the web interface: add the URL to monitor, set the interval and the trigger threshold.
+- View the history of checks and notifications in the interface.
